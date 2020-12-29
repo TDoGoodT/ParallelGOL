@@ -1,0 +1,4 @@
+Semaphore.o: Part1/Semaphore.cpp Part1/Semaphore.hpp Part1/Headers.hpp
+main.o: Part2/main.cpp Part2/Game.hpp
+Game.o: Part2/Game.cpp
+utils.o: Part2/utils.cpp
