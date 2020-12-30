@@ -12,7 +12,7 @@ Semaphore::~Semaphore(){
 	pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&lock);
 }
-void Semaphore::down(){
+void Semaphore::down(){ //Wait
 	pthread_mutex_lock(&lock);
     while(val == 0) {
         pthread_cond_wait(&cond,&lock);
@@ -20,7 +20,7 @@ void Semaphore::down(){
     --val;
     pthread_mutex_unlock(&lock);
 } // Block untill counter >0, and mark - One thread has entered the critical section.
-void Semaphore::up(){
+void Semaphore::up(){ //Signal
 	pthread_mutex_lock(&lock);
     ++val;
     pthread_mutex_unlock(&lock);

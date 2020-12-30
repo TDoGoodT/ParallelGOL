@@ -1,14 +1,27 @@
 #include "PCQueue.hpp"
-#include "Semaphore.hpp"
-
-Semaphore sem();
 
 template <typename T>
-PCQueue<T>::pop(){
-
+PCQueue::PCQueue(){
+	pthread_mutex_init(&m, NULL);
 }
 
 template <typename T>
-PCQueue<T>::push(const T& item){ //assume single Producer => no need to use sync.
+Semaphore::~PCQueue(){
+    pthread_mutex_destroy(&m);
+}
+
+template <typename T>
+PCQueue<T>::pop(){
+	queue_size.down();
+	pthread_mutex_lock(&m);
+	tasks.pop();
+	pthread_mutex_unlock(&m);
+}
+
+template <typename T>
+PCQueue<T>::push(const T& item){ 
+	pthread_mutex_lock(&m);
 	tasks.push(item);
+	pthread_mutex_unlock(&m);
+	queue_size.up();
 }
