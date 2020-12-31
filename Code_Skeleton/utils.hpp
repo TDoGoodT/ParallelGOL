@@ -1,7 +1,6 @@
 #ifndef __UTILS_H
 #define __UTILS_H
 #include "Headers.hpp"
-#include "Thread.hpp"
 
 namespace utils {
 	// Read all non-empty lines from file as strings with no carriage returns, and returns them in a std::vector 

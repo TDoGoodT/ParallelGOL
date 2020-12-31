@@ -1,4 +1,4 @@
-#include <Game.hpp>
+#include "Game.hpp"
 
 
 static const char *colors[7] = {BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN};
@@ -42,7 +42,7 @@ void Game::_destroy_game(){
 /*--------------------------------------------------------------------------------
 								
 --------------------------------------------------------------------------------*/
-inline static void print_board(const char* header) {
+inline void Game::print_board(const char* header) {
 
 	if(print_on){ 
 
