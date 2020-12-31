@@ -1,17 +1,17 @@
 #include "PCQueue.hpp"
 
 template <typename T>
-PCQueue::PCQueue(){
+PCQueue<T>::PCQueue(){
 	pthread_mutex_init(&m, NULL);
 }
 
 template <typename T>
-Semaphore::~PCQueue(){
+PCQueue<T>::~PCQueue(){
     pthread_mutex_destroy(&m);
 }
 
 template <typename T>
-PCQueue<T>::pop(){
+T PCQueue<T>::pop(){
 	queue_size.down();
 	pthread_mutex_lock(&m);
 	tasks.pop();
@@ -19,7 +19,7 @@ PCQueue<T>::pop(){
 }
 
 template <typename T>
-PCQueue<T>::push(const T& item){ 
+void PCQueue<T>::push(const T& item){ 
 	pthread_mutex_lock(&m);
 	tasks.push(item);
 	pthread_mutex_unlock(&m);
