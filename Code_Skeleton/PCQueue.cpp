@@ -25,3 +25,8 @@ void PCQueue<T>::push(const T& item){
 	pthread_mutex_unlock(&m);
 	queue_size.up();
 }
+
+template<typename T>
+int PCQueue<T>::size(){
+	return queue_size.get_val();
+}

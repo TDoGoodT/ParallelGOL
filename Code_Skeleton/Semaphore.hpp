@@ -16,7 +16,7 @@ public:
 
 	void up(); // Mark: 1 Thread has left the critical section
 	void down(); // Block untill counter >0, and mark - One thread has entered the critical section.
-
+	int get_val();
 private:
 	// TODO 
 	int val; //counting resources if val>0 and waiting tasks if val<0

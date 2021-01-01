@@ -19,10 +19,11 @@ public:
 	// Assumes single producer 
 	void push(const T& item); 
 
+	int size();
 
 private:
 	// Add your class memebers here
-	queue<T> tasks; //Is needed?
+	queue<T> tasks;
 	Semaphore queue_size;
 	mutex_t m;
 };

@@ -15,6 +15,8 @@ public:
 
 	/** Returns the thread_id **/
 	uint get_thread_id() { return thread_id; }
+
+	pthread_t get_pthread() { return m_thread; }
 protected:
 	/** Implement this method in your subclass with the code you want your thread to run. */
 	virtual void thread_workload() = 0;

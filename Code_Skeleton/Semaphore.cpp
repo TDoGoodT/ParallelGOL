@@ -26,3 +26,11 @@ void Semaphore::up(){ //Signal
     pthread_mutex_unlock(&lock);
     pthread_cond_signal(&cond);
 } // Mark: 1 Thread has left the critical section
+
+int Semaphore::get_val(){
+    int res;
+    pthread_mutex_lock(&lock);
+    res = val;
+    pthread_mutex_unlock(&lock);
+    return res;
+}
