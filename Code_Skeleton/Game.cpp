@@ -1,4 +1,4 @@
-//#include "utils.hpp"
+#include "utils.hpp"
 #include "Game.hpp"
 
 #define NEIGH_IDX(line, col) 			\
