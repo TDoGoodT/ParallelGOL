@@ -1,34 +1,142 @@
+//#include "utils.hpp"
 #include "Game.hpp"
-#define NEIGH_ARR(f, line_idx, col_idx, h, w)					\
-		{	(*f)[line_idx + 1 % w][col_idx + 1 % h],	\
-			(*f)[line_idx + 1 % w][col_idx],			\
-			(*f)[line_idx + 1 % w][col_idx - 1 % h],	\
-			(*f)[line_idx - 1 % w][col_idx - 1 % h],	\
-			(*f)[line_idx - 1 % w][col_idx],			\
-			(*f)[line_idx - 1 % w][col_idx + 1 % h],	\
-			(*f)[line_idx][col_idx + 1 % h],			\
-			(*f)[line_idx][col_idx - 1 % h]			\
-		}
+
+#define NEIGH_IDX(line, col) 			\
+	{ 										\
+		{(line) , (col + 1) },		\
+		{(line) , (col - 1) },		\
+		{(line + 1) , (col + 1) },	\
+		{(line + 1) , (col) },		\
+		{(line + 1) , (col - 1) },	\
+		{(line - 1) , (col + 1) },	\
+		{(line - 1) , (col) },		\
+		{(line - 1) , (col - 1) }		\
+	}
+
+#define INIT_XY(neigh, i, x, y, h, w)									\
+	{															\
+		x = (neigh[i][0] < 0) ? (h - 1) : (neigh[i][0] % h),	\
+		y = (neigh[i][1] < 0) ? (w - 1) : (neigh[i][1] % w);	\
+	}
 
 static const char *colors[7] = {BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN};
 /*--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------*/
+
+static uint dominant(vector<int> hist){
+	int max = 0, max_idx = 0;
+	for(int i = 1; i <= 7; i++){
+		if(max < (hist[i-1] * i)) {
+			max = hist[i-1] * i;
+			max_idx = i;
+		}
+	}
+	return static_cast<uint>(max_idx);
+}
+
+static void eval_cell(Game * game, int line_idx, int col_idx){
+	vector<int> neigh_histo(7,0);
+	field crr = game->get_crr_fld(), nxt = game->get_nxt_fld();
+	int x, y, w = game->width, h = game->height, alive = 0,
+	 neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
+	for(int i = 0; i < 8; i++){
+		INIT_XY(neigh,i,x,y,h,w);
+		if((*crr)[x][y] > 0){
+			neigh_histo[(*crr)[x][y] % 7]++;
+			alive++;
+		}
+	}
+	if(alive < 4 && alive > 1){
+		if((*crr)[line_idx][col_idx] > 0){ //Was alive
+			(*nxt)[line_idx][col_idx] = (*crr)[line_idx][col_idx];
+		}else if(alive == 3){ //Was dead
+		/*if(line_idx == 7 && col_idx == 10) {
+			for(auto x : neigh_histo) cerr << x;
+			cerr << endl << dominant(neigh_histo) << endl;
+		}*/
+			(*nxt)[line_idx][col_idx] = dominant(neigh_histo);
+		}else{
+			(*nxt)[line_idx][col_idx] = 0;
+		}
+	}else{
+		(*nxt)[line_idx][col_idx] = 0;
+	}
+	return;
+}
+
+static void eval_cell_color(Game * game, int line_idx, int col_idx){
+	field crr = game->get_crr_fld();
+	field nxt = game->get_nxt_fld();
+	if((*nxt)[line_idx][col_idx] == 0){
+		(*crr)[line_idx][col_idx] = 0;
+		return;
+	}
+	int x, y, w = game->width, h = game->height, alive = 1,
+	neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
+	uint  sum = (*nxt)[line_idx][col_idx];
+	for(int i = 0; i < 8; i++){
+		INIT_XY(neigh,i,x,y,h,w);
+		if((*nxt)[x][y] > 0){
+			sum += (*nxt)[x][y];
+			alive++;
+		}
+	}
+	(*crr)[line_idx][col_idx] = round(sum / alive);
+}
+
+static void set_start_end_bound(uint * start, uint * end, uint tile_id, Game * game){
+	uint offset = floor(game->height / game->thread_num());
+	(*start) = offset * tile_id;
+	(*end) = (tile_id == game->thread_num() - 1) ? game->height - 1 : offset * (tile_id + 1); 
+}
+
+static void task_phase1(Game * game, uint tile_id, uint start, uint end){
+	for(uint line = start; line <= end; line++){
+		for(uint col = 0; col < game->width; col++){
+			eval_cell(game, static_cast<int>(line), static_cast<int>(col));
+		}
+	}
+}
+
+static void task_phase2(Game * game, uint tile_id, uint start, uint end){
+	for(uint line = start; line <= end; line++){
+		for(uint col = 0; col < game->width; col++){
+			eval_cell_color(game, static_cast<int>(line), static_cast<int>(col));
+		}
+	} 
+}
+
+static void next_gen(Game * game, uint tile_id, Semaphore * sem){
+	uint start, end, gen = game->get_crr_gen(), t_num = game->thread_num();
+	set_start_end_bound(&start, &end, tile_id, game);
+	task_phase1(game,tile_id, start, end);
+	sem->up();
+	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {}
+	task_phase2(game,tile_id, start, end);
+	sem->up();
+	while((uint) sem->get_val() < 2 * (gen+1) * t_num) {}
+}
+
+/*--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------*/
+
 Game::Game(game_params parms):
 		parms(parms),
 		m_gen_num(parms.n_gen),
 		interactive_on(parms.interactive_on),
 		print_on(parms.print_on),
-		m_gen_hist(vector<float>()),
-		crr_gen_num(0),
-		gen_count_lock{pthread_mutex_init(&gen_count_lock, NULL)} {}
+		m_tile_hist_sem(1){}
 
 const vector<float> Game::gen_hist() const { return m_gen_hist; }
 
 const vector<float> Game::tile_hist() const { return m_tile_hist; }
 
-void Game::set_tile_hist(uint tile_idx, float time){
-	m_tile_hist[get_crr_gen() * m_thread_num + tile_idx] = time;
+void Game::push_tile_time(float time){
+	m_tile_hist_sem.down();
+	m_tile_hist.push_back(time);
+	m_tile_hist_sem.up();
 }
 
 
@@ -38,86 +146,9 @@ field Game::get_crr_fld() { return crr_fld; }
 
 field Game::get_nxt_fld() { return nxt_fld; }
 
-uint Game::get_crr_gen() { 
-	uint res;
-	pthread_mutex_lock(&gen_count_lock);
-	res = crr_gen_num; 
-	pthread_mutex_unlock(&gen_count_lock);
-	return res;
-	}
+uint Game::get_crr_gen() { return m_gen.get_val(); }
 
 uint Game::get_gen_num() { return m_gen_num; }
-
-static uint dominant(uint hist[8]){
-	uint max = 0;
-	for(int i = 1; i < 8; i++){
-		if(max < hist[i]) max = hist[i];
-	}
-	return max;
-}
-
-static void eval_cell(Game * game, uint line_idx, uint col_idx){
-	uint w = game->width, h = game->height, alive = 0, 
-	neigh_histo[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-	field crr = game->get_crr_fld(), nxt = game->get_nxt_fld();
-	uint neigh[9] = NEIGH_ARR(crr, line_idx, col_idx, h, w);
-	for(int i = 0; i < 9; i++){
-		if(neigh[i]){
-			neigh_histo[neigh[i]]++;
-			alive++;
-		}
-	}
-	if(alive < 3 && alive > 1){
-		if((*crr)[line_idx][col_idx] != 0){ //Was alive
-			(*nxt)[line_idx][col_idx] = (*crr)[line_idx][col_idx];
-		}else if(alive == 3){ //Was dead
-			(*nxt)[line_idx][col_idx] = dominant(neigh_histo);
-		}else{
-			(*nxt)[line_idx][col_idx] = 0;
-		}
-	}else{
-		(*nxt)[line_idx][col_idx] = 0;
-	}
-}
-
-static void eval_cell_color(Game * game, uint line_idx, uint col_idx){
-	uint w = game->width, h = game->height, alive = 0, sum = 0;
-	field nxt = game->get_nxt_fld();
-	uint neigh[9] = NEIGH_ARR(nxt, line_idx, col_idx, h, w);
-	for(int i = 0; i < 9; i++){
-		if(neigh[i]){
-			sum += neigh[i];
-			alive++;
-		}
-	}
-	(*nxt)[line_idx][col_idx] = floor(sum / alive);
-}
-
-static void set_start_end_bound(int * start, int * end, int tile_id, Game * game){
-	int offset = floor(game->height / game->thread_num());
-	*start = (tile_id == 0) ? 0 : offset * tile_id;
-	*end = (tile_id == game->thread_num()) ? game->height - 1 : offset * (tile_id + 1); 
-}
-
-static void task_phase1(Game * game, uint tile_id){
-	int start_line_idx, end_line_idx;
-	set_start_end_bound(&start_line_idx, &end_line_idx, tile_id, game);
-	for(int line_idx = start_line_idx; line_idx <= end_line_idx; line_idx++){
-		for(int col_idx = 0; col_idx < game->width; col_idx++){
-			eval_cell(game, line_idx, col_idx);
-		}
-	} 
-}
-
-static void task_phase2(Game * game, uint tile_id){
-	int start_line_idx, end_line_idx;
-	set_start_end_bound(&start_line_idx, &end_line_idx, tile_id, game);
-	for(int line_idx = start_line_idx; line_idx <= end_line_idx; line_idx++){
-		for(int col_idx = 0; col_idx < game->width; col_idx++){
-			eval_cell_color(game, line_idx, col_idx);
-		}
-	} 
-}
 
 void Game::run() {
 
@@ -129,6 +160,7 @@ void Game::run() {
 		auto gen_end = std::chrono::system_clock::now();
 		m_gen_hist.push_back((float)std::chrono::duration_cast<std::chrono::microseconds>(gen_end - gen_start).count());
 		print_board(NULL);
+		m_gen.up();
 	} // generation loop
 	print_board("Final Board");
 	_destroy_game();
@@ -136,26 +168,29 @@ void Game::run() {
 
 void Game::_init_game() {
 	//Read file
-	vector<string> str_field = utils::read_lines(parms.filename);
+	vector<vector<string>> str_field;
+	vector<string> tmp = utils::read_lines(parms.filename);
+	for(auto s : tmp){
+		str_field.push_back(utils::split(s,' '));
+	}
 	height = str_field.size();
 	width = str_field[0].size();
 	//update m_thread_num
 	m_thread_num = (str_field.size() < parms.n_thread) ? str_field.size() : parms.n_thread; 
-	m_tile_hist = vector<float>(m_thread_num * m_gen_num, 0);
 	// Create threads
 	m_threadpool = vector<GOLThread*>(m_thread_num, nullptr);
-	for(int i = 0; i < m_thread_num; i++){
-		m_threadpool[i] = new GOLThread(i, this);
+	for(uint i = 0; i < m_thread_num; i++){
+		m_threadpool[i] = new GOLThread(i, this, &m_sem);
 	}
 	// Create game fields
-	crr_fld = new vector<vector<uint>>(str_field.size(), vector<uint>(str_field[0].size(), 0));
-	nxt_fld = new vector<vector<uint>>(*crr_fld);
+	crr_fld = new vector<vector<uint>>(height, vector<uint>(width));
+	nxt_fld = new vector<vector<uint>>(height, vector<uint>(width));
 	uint count_lines = 0, count_chars;
 	for(auto str_line : str_field){
 		count_chars = 0;
 		for(auto c : str_line){
-			((*crr_fld)[count_lines])[count_chars++] = (uint) c;
-		}
+			(*crr_fld)[count_lines][count_chars++] = ((uint) c[0]) - 48;
+		}count_lines++;
 	}
 	// Start the threads
 	for(auto thread : m_threadpool){
@@ -165,25 +200,14 @@ void Game::_init_game() {
 }
 
 void Game::_step(uint curr_gen) {
+	vector<task_struct> tasks;
 	// Push phase 1 jobs to queue
-	for(int i = 0; i < m_thread_num; i++){
-		t_queue.push({.tile_idx = i, .task = task_phase1});
+	for(uint i = 0; i < m_thread_num; i++){
+		tasks.push_back({i, next_gen});
 	}
+	t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating 
-	while(t_queue.size() > 0) {}
-	// Push phase 2 jobs to queue
-	for(int i = 0; i < m_thread_num; i++){
-		t_queue.push({.tile_idx = i, .task = task_phase2});
-	}
-	// Wait for the workers to finish calculating 
-	while(t_queue.size() > 0) {}
-	// Swap pointers between current and next field 
-	auto tmp = crr_fld;
-	crr_fld = nxt_fld;
-	nxt_fld = tmp;
-	pthread_mutex_lock(&gen_count_lock);
-	crr_gen_num++;
-	pthread_mutex_unlock(&gen_count_lock);
+	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){}
 }
 
 void Game::_destroy_game(){
@@ -193,14 +217,39 @@ void Game::_destroy_game(){
 	for(auto thread : m_threadpool){
 		pthread_join(thread->get_pthread(), NULL);
 	}
-	pthread_mutex_destroy(&gen_count_lock);
-	free(crr_fld);
-	free(nxt_fld);
 }
 
 /*--------------------------------------------------------------------------------
 								
 --------------------------------------------------------------------------------*/
+
+
+static void print_the_board1(field f, uint field_height, uint field_width){
+	cout << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
+	for (auto line : (*f)) {
+		cout << u8"║";
+		for (auto x : line) {
+            if (x > 0){
+                cout << colors[x % 7] << u8"█" << RESET;
+			}
+            else
+                cout << u8"░";
+		}
+		cout << u8"║" << endl;
+	}
+	cout << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
+}
+/*
+static void print_the_board2(field f, uint field_height, uint field_width){
+	for (auto line : (*f)) {
+		for (auto x : line) {
+			cout << "(" << x << ")";
+		}
+		cout << endl;
+	}
+}*/
+
+
 inline void Game::print_board(const char* header) {
 
 	if(print_on){ 
@@ -212,31 +261,14 @@ inline void Game::print_board(const char* header) {
 		// Print small header if needed
 		if (header != NULL)
 			cout << "<------------" << header << "------------>" << endl;
-		
 		// TODO: Print the board 
-		print_the_board(crr_fld, crr_fld->size(), (*crr_fld)[0].size());
+		print_the_board1(crr_fld, (*crr_fld).size(), (*crr_fld)[0].size());
 
 		// Display for GEN_SLEEP_USEC micro-seconds on screen 
 		if(interactive_on)
 			usleep(GEN_SLEEP_USEC);
 	}
 
-}
-
-static void print_the_board(field f, uint field_width, uint field_height){
-	vector<vector<uint>> field = *f;
-	cout << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
-		for (uint i = 0; i < field_height; ++i) {
-			cout << u8"║";
-			for (uint j = 0; j < field_width; ++j) {
-                if (field[i][j] > 0)
-                    cout << colors[field[i][j] % 7] << u8"█" << RESET;
-                else
-                    cout << u8"░";
-			}
-			cout << u8"║" << endl;
-		}
-		cout << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
 }
 
 

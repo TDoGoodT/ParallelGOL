@@ -1,5 +1,6 @@
-utils.o: utils.cpp utils.hpp Headers.hpp
-PCQueue.o: PCQueue.cpp PCQueue.hpp Semaphore.hpp Headers.hpp
+main.o: main.cpp Game.hpp utils.hpp Headers.hpp Thread.hpp PCQueue.hpp \
+ Semaphore.hpp
 Semaphore.o: Semaphore.cpp Semaphore.hpp Headers.hpp
-main.o: main.cpp Game.hpp utils.hpp Headers.hpp Thread.hpp
-Game.o: Game.cpp Game.hpp utils.hpp Headers.hpp Thread.hpp
+Game.o: Game.cpp Game.hpp utils.hpp Headers.hpp Thread.hpp PCQueue.hpp \
+ Semaphore.hpp
+utils.o: utils.cpp utils.hpp Headers.hpp

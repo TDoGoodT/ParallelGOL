@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include "Thread.hpp"
 #include "PCQueue.hpp"
+//#include "GOLThread.hpp"
 /*--------------------------------------------------------------------------------
 								  Species colors
 --------------------------------------------------------------------------------*/
@@ -19,13 +20,15 @@
 /*--------------------------------------------------------------------------------
 								  Auxiliary Structures
 --------------------------------------------------------------------------------*/
+class Game;
+class GOLThread;
 typedef vector<vector<uint>>* 	field;
-typedef void 					(*task)(Game*, uint);
+typedef void 					(*task_func)(Game*, uint, Semaphore*);
 typedef struct {
 	uint 	tile_idx;
-	task 	task;
-} 								task_srct;
-typedef PCQueue<task_srct> 		tasks_queue;
+	task_func 	task;
+} 								task_struct;
+typedef PCQueue<task_struct> 		tasks_queue;
 
 struct game_params {
 	// All here are derived from ARGV, the program's input parameters. 
@@ -36,29 +39,6 @@ struct game_params {
 	bool 		print_on; 
 };
 
-class GOLThread : public Thread{
-public:
-    GOLThread(uint thread_id, Game * g):
-        Thread(thread_id),
-		game(g){
-			//TODO: Any vars??
-        }
-protected:
-    virtual void thread_workload(){
-		//TODO: add the routine for each worker in the game
-		while(game->get_crr_gen() < game->get_gen_num()) {
-			auto tile_start = std::chrono::system_clock::now();
-			task_srct t = game->t_queue.pop();
-			(t.task)(game, t.tile_idx);
-			auto tile_end = std::chrono::system_clock::now();
-			auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
-			game->set_tile_hist(t.tile_idx, time);
-		}
-		pthread_exit(NULL);
-    }
-	//TODO: VARS ???
-	Game* game;
-};
 /*--------------------------------------------------------------------------------
 									Class Declaration
 --------------------------------------------------------------------------------*/
@@ -66,11 +46,11 @@ class Game {
 public:
 
 	Game(game_params);
-	~Game();
+	~Game() {}
 	void 				run(); // Runs the game
 	const vector<float> gen_hist() const; // Returns the generation timing histogram  
 	const vector<float> tile_hist() const; // Returns the tile timing histogram
-	void 				set_tile_hist(uint tile_idx, float time);
+	void 				push_tile_time(float time);
 	uint 				thread_num() const; //Returns the effective number of running threads = min(thread_num, field_height)
 	field 				get_crr_fld();
 	field 				get_nxt_fld();
@@ -91,7 +71,7 @@ protected: // All members here are protected, instead of private for testing pur
 	uint 				m_gen_num; 			 // The number of generations to run
 	uint 				m_thread_num; 			 // Effective number of threads = min(thread_num, field_height)
 	vector<float> 		m_tile_hist; 	 // Shared Timing history for tiles: First m_gen_num cells are the calculation durations for tiles in generation 1 and so on. 
-							   	 // Note: In your implementation, all m_thread_num threads must write to this structure. 
+										// Note: In your implementation, all m_thread_num threads must write to this structure. 
 	vector<float> 		m_gen_hist;  	 // Timing history for generations: x=m_gen_hist[t] iff generation t was calculated in x microseconds
 	vector<GOLThread*> 	m_threadpool; // A storage container for your threads. This acts as the threadpool. 
 
@@ -101,8 +81,36 @@ protected: // All members here are protected, instead of private for testing pur
 	// TODO: Add in your variables and synchronization primitives  
 	field 				crr_fld;
 	field 				nxt_fld;
-	uint 				crr_gen_num;
-	mutex_t 			gen_count_lock;
+	Semaphore			m_gen;
+	Semaphore			m_sem;
+	Semaphore			m_tile_hist_sem;
+};
+
+
+class GOLThread : public Thread{
+public:
+    GOLThread(): Thread(0){};
+	GOLThread(uint thread_id, Game * g, Semaphore * sem):
+        Thread(thread_id),
+		game(g),
+		sem(sem) {}
 	
+
+protected:
+    virtual void thread_workload() override{
+		//TODO: add the routine for each worker in the game
+		while(game->get_crr_gen() < game->get_gen_num()) {		
+			if(game->t_queue.size() == 0) continue;
+			auto tile_start = std::chrono::system_clock::now();
+			task_struct t = game->t_queue.pop();
+			(t.task)(game, t.tile_idx, sem);
+			auto tile_end = std::chrono::system_clock::now();
+			auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
+			game->push_tile_time(time);
+		}
+		pthread_exit(NULL);
+    }
+	Game* game;
+	Semaphore * sem;
 };
 #endif

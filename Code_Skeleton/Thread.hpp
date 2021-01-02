@@ -1,6 +1,7 @@
 #ifndef __THREAD_H
 #define __THREAD_H
 #include "Headers.hpp"
+#include <pthread.h>
 class Thread
 {
 public:
@@ -23,7 +24,7 @@ protected:
 	uint thread_id; // A number from 0 -> Number of threads initialized, providing a simple numbering for you to use
 
 private:
-	static void * entry_func(void * thread) { ((Thread *)thread)->thread_workload(); return NULL; }
+	static void * entry_func(void * thread) {((Thread *)thread)->thread_workload(); return NULL; }
 	pthread_t m_thread;
 };
 
