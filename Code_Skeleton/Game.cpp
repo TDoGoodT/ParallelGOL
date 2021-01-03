@@ -87,7 +87,7 @@ static void eval_cell_color(Game * game, int line_idx, int col_idx){
 			}
 		}
 	}
-	(*crr)[line_idx][col_idx] = std::round(sum / alive);
+	(*crr)[line_idx][col_idx] = std::round(((double) sum) / ((double) alive));
 }
 
 static void set_start_end_bound(uint * start, uint * end, uint tile_id, Game * game){
