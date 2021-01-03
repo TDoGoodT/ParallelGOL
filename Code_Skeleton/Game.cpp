@@ -27,8 +27,8 @@ static const char *colors[7] = {BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN};
 static uint dominant(vector<int> hist){
 	int max = 0, max_idx = 0;
 	for(int i = 1; i <= 7; i++){
-		if(max < (hist[i-1] * i)) {
-			max = hist[i-1] * i;
+		if(max < (hist[i] * i)) {
+			max = hist[i] * i;
 			max_idx = i;
 		}
 	}
@@ -36,7 +36,7 @@ static uint dominant(vector<int> hist){
 }
 
 static void eval_cell(Game * game, int line_idx, int col_idx){
-	vector<int> neigh_histo(7,0);
+	vector<int> neigh_histo(8,0);
 	field crr = game->get_crr_fld(), nxt = game->get_nxt_fld();
 	int x, y, w = game->width, h = game->height, alive = 0,
 	 neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
@@ -45,7 +45,7 @@ static void eval_cell(Game * game, int line_idx, int col_idx){
 		    x = neigh[i][0];
 		    y = neigh[i][1];
             if ((*crr)[x][y] > 0) {
-                neigh_histo[(*crr)[x][y] % 7]++;
+                neigh_histo[(*crr)[x][y]]++;
                 alive++;
             }
         }
@@ -78,13 +78,16 @@ static void eval_cell_color(Game * game, int line_idx, int col_idx){
 	neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
 	uint  sum = (*nxt)[line_idx][col_idx];
 	for(int i = 0; i < 8; i++){
-		INIT_XY(neigh,i,x,y,h,w);
-		if((*nxt)[x][y] > 0){
-			sum += (*nxt)[x][y];
-			alive++;
+		if(neigh[i][0] >= 0  && neigh[i][0]<h && neigh[i][1] >= 0 && neigh[i][1] < w){
+			x = neigh[i][0];
+			y = neigh[i][1];
+			if((*nxt)[x][y] > 0){
+				sum += (*nxt)[x][y];
+				alive++;
+			}
 		}
 	}
-	(*crr)[line_idx][col_idx] = round(sum / alive);
+	(*crr)[line_idx][col_idx] = std::round(sum / alive);
 }
 
 static void set_start_end_bound(uint * start, uint * end, uint tile_id, Game * game){
@@ -113,12 +116,9 @@ static void next_gen(Game * game, uint tile_id, Semaphore * sem){
 	uint start, end, gen = game->get_crr_gen(), t_num = game->thread_num();
 	set_start_end_bound(&start, &end, tile_id, game);
 	task_phase1(game,tile_id, start, end);
-	cerr << "Done phase 1 on tile: " << tile_id << endl;
 	sem->up();
 	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {}
-	cerr << "All thread Done" << endl;
 	task_phase2(game,tile_id, start, end);
-    cerr << "Done phase 2 on tile: " << tile_id << endl;
 	sem->up();
 	while((uint) sem->get_val() < 2 * (gen+1) * t_num) {}
 }
@@ -228,9 +228,14 @@ void Game::_destroy_game(){
 
 
 static void print_the_board1(field f, uint field_height, uint field_width){
-	cout << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
+	cout << "   ";
+	for(int i = 0; i < field_width; i++) cout << i % 10;
+	cout << endl;
+	cout << "   " << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
+	int lines = 0;
 	for (auto line : (*f)) {
-		cout << u8"║";
+		if(lines < 10) cout << " ";
+		cout << lines++ << " " << u8"║";
 		for (auto x : line) {
             if (x > 0){
                 cout << colors[x % 7] << u8"█" << RESET;
@@ -240,7 +245,7 @@ static void print_the_board1(field f, uint field_height, uint field_width){
 		}
 		cout << u8"║" << endl;
 	}
-	cout << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
+	cout << "   " << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
 }
 /*
 static void print_the_board2(field f, uint field_height, uint field_width){

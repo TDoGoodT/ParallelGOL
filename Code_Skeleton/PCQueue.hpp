@@ -3,105 +3,63 @@
 #include "Headers.hpp"
 #include "Semaphore.hpp"
 // Single Producer - Multiple Consumer queue
-
-class RWLock{
-public:
-	RWLock():
-		r_inside(0), w_inside(0), w_waiting(false){
-			pthread_cond_init(&r_allowed, NULL);
-			pthread_cond_init(&w_allowed, NULL);
-			pthread_mutex_init(&glb_lock, NULL);
-	}
-	void reader_lock(){
-		pthread_mutex_lock(&glb_lock);
-		while(w_inside || w_waiting)
-			pthread_cond_wait(&r_allowed, &glb_lock);
-		r_inside++;
-		pthread_mutex_unlock(&glb_lock);
-	}
-	void reader_unlock(){
-		pthread_mutex_lock(&glb_lock);
-		r_inside--;
-		if(!r_inside){
-			pthread_cond_signal(&w_allowed);
-		}
-		pthread_mutex_unlock(&glb_lock);
-	}
-	void writer_lock(){
-		pthread_mutex_lock(&glb_lock);
-		w_waiting = true;
-		while(r_inside)
-			pthread_cond_wait(&w_allowed, &glb_lock);
-		w_waiting = false;
-		w_inside++;
-		pthread_mutex_unlock(&glb_lock);
-
-	}
-	void writer_unlock(){
-		pthread_mutex_lock(&glb_lock);
-		w_inside--;
-		if(w_inside == 0){
-			pthread_cond_broadcast(&r_allowed);
-			pthread_cond_signal(&w_allowed);
-		}	
-		pthread_mutex_unlock(&glb_lock);
-	}
-private:
-	int r_inside, w_inside;
-	bool w_waiting; //assumes single writer 
-	cond_t r_allowed, w_allowed;
-	mutex_t glb_lock;
-
-};
-
 template <typename T>
 class PCQueue
 {
 
 public:
+	PCQueue(){
+		pthread_mutex_init(&m, NULL);
+	}
+	~PCQueue(){
+		pthread_mutex_destroy(&m);
+	}
 
 	// Blocks while queue is empty. When queue holds items, allows for a single
 	// thread to enter and remove an item from the front of the queue and return it. 
 	// Assumes multiple consumers.
 	T pop(){
-		lock.reader_lock();
-		while(tasks.empty()) {}
+		queue_size.down();
+        pthread_mutex_lock(&m);
 		T res = tasks.front();
 		tasks.pop();
-		lock.reader_unlock();
+		pthread_mutex_unlock(&m);
 		return res;
 	}	 
 
 	// Allows for producer to enter with *minimal delay* and push items to back of the queue.
 	// Hint for *minimal delay* - Allow the consumers to delay the producer as little as possible.  
 	// Assumes single producer 
-	void push(const T& item){ 
-		lock.writer_lock();
+	void push(const T& item){
+        pthread_mutex_lock(&m);
 		tasks.push(item);
-		lock.writer_unlock();
-	}
+		queue_size.up();
+        pthread_mutex_unlock(&m);
+    }
 
 
 	// Allows for producer to enter with *minimal delay* and push mutiple items to back of the queue.
 	// Hint for *minimal delay* - Allow the consumers to delay the producer as little as possible.  
 	// Assumes single producer 
 	void multi_push(const vector<T>& items){ 
-		lock.writer_lock();
+		pthread_mutex_lock(&m);
 		for(auto item : items){
 			tasks.push(item);
+			queue_size.up();
 		}
-		lock.writer_unlock();
+		pthread_mutex_unlock(&m);
 	}
 
 	int size(){
-		return tasks.size();
+		return queue_size.get_val();
 	}
 
 
 private:
 	// Add your class memebers here
 	queue<T> tasks;
-	RWLock lock;
+	Semaphore queue_size;
+	mutex_t m;
 };
 // Recommendation: Use the implementation of the std::queue for this exercise
 #endif

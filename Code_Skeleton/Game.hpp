@@ -22,7 +22,7 @@
 --------------------------------------------------------------------------------*/
 class Game;
 class GOLThread;
-typedef vector<vector<uint>>* 	field;
+typedef int_mat * 	field;
 typedef void 					(*task_func)(Game*, uint, Semaphore*);
 typedef struct {
 	uint 	tile_idx;
@@ -48,8 +48,8 @@ public:
 	Game(game_params);
 	~Game() {}
 	void 				run(); // Runs the game
-	const vector<float> gen_hist() const; // Returns the generation timing histogram  
-	const vector<float> tile_hist() const; // Returns the tile timing histogram
+	const vector<double> gen_hist() const; // Returns the generation timing histogram
+	const vector<double> tile_hist() const; // Returns the tile timing histogram
 	void 				push_tile_time(float time);
 	uint 				thread_num() const; //Returns the effective number of running threads = min(thread_num, field_height)
 	field 				get_crr_fld();
@@ -70,9 +70,9 @@ protected: // All members here are protected, instead of private for testing pur
 	game_params 		parms;
 	uint 				m_gen_num; 			 // The number of generations to run
 	uint 				m_thread_num; 			 // Effective number of threads = min(thread_num, field_height)
-	vector<float> 		m_tile_hist; 	 // Shared Timing history for tiles: First m_gen_num cells are the calculation durations for tiles in generation 1 and so on. 
+	vector<double> 		m_tile_hist; 	 // Shared Timing history for tiles: First m_gen_num cells are the calculation durations for tiles in generation 1 and so on.
 										// Note: In your implementation, all m_thread_num threads must write to this structure. 
-	vector<float> 		m_gen_hist;  	 // Timing history for generations: x=m_gen_hist[t] iff generation t was calculated in x microseconds
+	vector<double> 		m_gen_hist;  	 // Timing history for generations: x=m_gen_hist[t] iff generation t was calculated in x microseconds
 	vector<GOLThread*> 	m_threadpool; // A storage container for your threads. This acts as the threadpool. 
 
 	bool 				interactive_on; // Controls interactive mode - that means, prints the board as an animation instead of a simple dump to STDOUT 
