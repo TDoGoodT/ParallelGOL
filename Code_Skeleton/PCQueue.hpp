@@ -59,13 +59,6 @@ class PCQueue
 {
 
 public:
-	PCQueue():completed_count(0) {
-		pthread_mutex_init(&m, NULL);
-		push_wait = false;
-	}
-	~PCQueue(){
-		pthread_mutex_destroy(&m);
-	}
 
 	// Blocks while queue is empty. When queue holds items, allows for a single
 	// thread to enter and remove an item from the front of the queue and return it. 
@@ -96,13 +89,12 @@ public:
 		lock.writer_lock();
 		for(auto item : items){
 			tasks.push(item);
-			queue_size.up();
 		}
 		lock.writer_unlock();
 	}
 
 	int size(){
-		return queue_size.get_val();
+		return tasks.size();
 	}
 
 
