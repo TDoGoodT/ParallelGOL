@@ -228,14 +228,9 @@ void Game::_destroy_game(){
 
 
 static void print_the_board1(field f, uint field_height, uint field_width){
-	cout << "   ";
-	for(int i = 0; i < field_width; i++) cout << i % 10;
-	cout << endl;
-	cout << "   " << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
-	int lines = 0;
+	cout  << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
 	for (auto line : (*f)) {
-		if(lines < 10) cout << " ";
-		cout << lines++ << " " << u8"║";
+		cout << u8"║";
 		for (auto x : line) {
             if (x > 0){
                 cout << colors[x % 7] << u8"█" << RESET;
@@ -245,7 +240,7 @@ static void print_the_board1(field f, uint field_height, uint field_width){
 		}
 		cout << u8"║" << endl;
 	}
-	cout << "   " << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
+	cout << u8"╚" << string(u8"═") * field_width << u8"╝" << endl;
 }
 /*
 static void print_the_board2(field f, uint field_height, uint field_width){
