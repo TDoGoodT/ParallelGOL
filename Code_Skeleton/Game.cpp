@@ -27,8 +27,8 @@ static const char *colors[7] = {BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN};
 static uint dominant(vector<int> hist){
 	int max = 0, max_idx = 0;
 	for(int i = 1; i <= 7; i++){
-		if(max < (hist[i-1] * i)) {
-			max = hist[i-1] * i;
+		if(max < (hist[i] * i)) {
+			max = hist[i] * i;
 			max_idx = i;
 		}
 	}
@@ -36,16 +36,19 @@ static uint dominant(vector<int> hist){
 }
 
 static void eval_cell(Game * game, int line_idx, int col_idx){
-	vector<int> neigh_histo(7,0);
+	vector<int> neigh_histo(8,0);
 	field crr = game->get_crr_fld(), nxt = game->get_nxt_fld();
 	int x, y, w = game->width, h = game->height, alive = 0,
 	 neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
 	for(int i = 0; i < 8; i++){
-		INIT_XY(neigh,i,x,y,h,w);
-		if((*crr)[x][y] > 0){
-			neigh_histo[(*crr)[x][y] % 7]++;
-			alive++;
-		}
+		if(neigh[i][0] >=0 && neigh[i][0]<h && neigh[i][1] >= 0 && neigh[i][1] < w) {
+		    x = neigh[i][0];
+		    y = neigh[i][1];
+            if ((*crr)[x][y] > 0) {
+                neigh_histo[(*crr)[x][y]]++;
+                alive++;
+            }
+        }
 	}
 	if(alive < 4 && alive > 1){
 		if((*crr)[line_idx][col_idx] > 0){ //Was alive
@@ -62,7 +65,6 @@ static void eval_cell(Game * game, int line_idx, int col_idx){
 	}else{
 		(*nxt)[line_idx][col_idx] = 0;
 	}
-	return;
 }
 
 static void eval_cell_color(Game * game, int line_idx, int col_idx){
@@ -76,13 +78,16 @@ static void eval_cell_color(Game * game, int line_idx, int col_idx){
 	neigh[8][2] = NEIGH_IDX(line_idx, col_idx);
 	uint  sum = (*nxt)[line_idx][col_idx];
 	for(int i = 0; i < 8; i++){
-		INIT_XY(neigh,i,x,y,h,w);
-		if((*nxt)[x][y] > 0){
-			sum += (*nxt)[x][y];
-			alive++;
+		if(neigh[i][0] >= 0  && neigh[i][0]<h && neigh[i][1] >= 0 && neigh[i][1] < w){
+			x = neigh[i][0];
+			y = neigh[i][1];
+			if((*nxt)[x][y] > 0){
+				sum += (*nxt)[x][y];
+				alive++;
+			}
 		}
 	}
-	(*crr)[line_idx][col_idx] = round(sum / alive);
+	(*crr)[line_idx][col_idx] = std::round(((double) sum) / ((double) alive));
 }
 
 static void set_start_end_bound(uint * start, uint * end, uint tile_id, Game * game){
@@ -129,9 +134,9 @@ Game::Game(game_params parms):
 		print_on(parms.print_on),
 		m_tile_hist_sem(1){}
 
-const vector<float> Game::gen_hist() const { return m_gen_hist; }
+const vector<double> Game::gen_hist() const { return m_gen_hist; }
 
-const vector<float> Game::tile_hist() const { return m_tile_hist; }
+const vector<double> Game::tile_hist() const { return m_tile_hist; }
 
 void Game::push_tile_time(float time){
 	m_tile_hist_sem.down();
@@ -200,13 +205,11 @@ void Game::_init_game() {
 }
 
 void Game::_step(uint curr_gen) {
-	vector<task_struct> tasks;
 	// Push phase 1 jobs to queue
 	for(uint i = 0; i < m_thread_num; i++){
-		tasks.push_back({i, next_gen});
+        t_queue.push({i, next_gen});
 	}
-	t_queue.multi_push(tasks);
-	// Wait for the workers to finish calculating 
+	// Wait for the workers to finish calculating
 	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){}
 }
 
@@ -215,7 +218,7 @@ void Game::_destroy_game(){
 	// Not implemented in the Game's destructor for testing purposes. 
 	// Testing of your implementation will presume all threads are joined here
 	for(auto thread : m_threadpool){
-		pthread_join(thread->get_pthread(), NULL);
+		thread->join();
 	}
 }
 
@@ -225,7 +228,7 @@ void Game::_destroy_game(){
 
 
 static void print_the_board1(field f, uint field_height, uint field_width){
-	cout << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
+	cout  << u8"╔" << string(u8"═") * field_width << u8"╗" << endl;
 	for (auto line : (*f)) {
 		cout << u8"║";
 		for (auto x : line) {
@@ -261,7 +264,7 @@ inline void Game::print_board(const char* header) {
 		// Print small header if needed
 		if (header != NULL)
 			cout << "<------------" << header << "------------>" << endl;
-		// TODO: Print the board 
+
 		print_the_board1(crr_fld, (*crr_fld).size(), (*crr_fld)[0].size());
 
 		// Display for GEN_SLEEP_USEC micro-seconds on screen 
