@@ -14,7 +14,7 @@ public:
     }
     void reader_lock(){
         pthread_mutex_lock(&glb_lock);
-        while(w_inside || w_waiting)
+        while(w_inside > 0)
             pthread_cond_wait(&r_allowed, &glb_lock);
         r_inside++;
         pthread_mutex_unlock(&glb_lock);
@@ -29,10 +29,6 @@ public:
     }
     void writer_lock(){
         pthread_mutex_lock(&glb_lock);
-        w_waiting = true;
-        while(r_inside)
-            pthread_cond_wait(&w_allowed, &glb_lock);
-        w_waiting = false;
         w_inside++;
         pthread_mutex_unlock(&glb_lock);
 
@@ -59,13 +55,6 @@ class PCQueue
 {
 
 public:
-    PCQueue():completed_count(0) {
-        pthread_mutex_init(&m, NULL);
-        push_wait = false;
-    }
-    ~PCQueue(){
-        pthread_mutex_destroy(&m);
-    }
 
     // Blocks while queue is empty. When queue holds items, allows for a single
     // thread to enter and remove an item from the front of the queue and return it.
@@ -96,13 +85,12 @@ public:
         lock.writer_lock();
         for(auto item : items){
             tasks.push(item);
-            queue_size.up();
         }
         lock.writer_unlock();
     }
 
     int size(){
-        return queue_size.get_val();
+        return tasks.size();
     }
 
 
