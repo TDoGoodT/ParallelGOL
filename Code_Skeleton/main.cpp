@@ -1,20 +1,31 @@
 #include "Game.hpp"
+#include "PCQueue.hpp"
 
 static inline game_params parse_input_args(int argc, char **argv);
 static inline void usage(const char* mes);
 static void calc_and_append_statistics(uint n_threads, const vector<double>& gen_hist, const vector<double>& tile_hist);
 
-/*--------------------------------------------------------------------------------
-										Main
---------------------------------------------------------------------------------*/
-int main(int argc, char **argv) {
 
+/*--------------------------------------------------------------------------------
+										Tests
+--------------------------------------------------------------------------------*/
+bool runGameWithStats(int argc, char **argv){
     game_params params = parse_input_args(argc, argv);
     Game g(params);
     g.run();
     calc_and_append_statistics(g.thread_num(), g.gen_hist(), g.tile_hist());
+    return true;
+}
+
+/*--------------------------------------------------------------------------------
+										Main
+--------------------------------------------------------------------------------*/
+int main(int argc, char **argv) {
+    bool res = runGameWithStats(argc,argv);
+    assert(res == true);
     return 0;
 }
+
 /*--------------------------------------------------------------------------------
 							 Auxiliary Implementation
 --------------------------------------------------------------------------------*/

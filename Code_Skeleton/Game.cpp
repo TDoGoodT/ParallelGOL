@@ -120,7 +120,7 @@ static void next_gen(Game * game, uint tile_id, Semaphore * sem){
 	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {}
 	task_phase2(game,tile_id, start, end);
 	sem->up();
-	while((uint) sem->get_val() < 2 * (gen+1) * t_num) {}
+	while((uint) sem->get_val() > 2 * (gen+1) * t_num) {}
 }
 
 /*--------------------------------------------------------------------------------
