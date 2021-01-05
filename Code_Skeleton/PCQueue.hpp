@@ -7,7 +7,7 @@
 class RWLock{
 public:
     RWLock():
-            r_inside(false), w_inside(false), w_waiting(false){
+            w_waiting(false), r_inside(false), w_inside(false){
         pthread_cond_init(&r_allowed, NULL);
         pthread_cond_init(&w_allowed, NULL);
         pthread_mutex_init(&glb_lock, NULL);
