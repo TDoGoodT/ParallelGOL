@@ -138,13 +138,6 @@ const vector<double> Game::gen_hist() const { return m_gen_hist; }
 
 const vector<double> Game::tile_hist() const { return m_tile_hist; }
 
-void Game::push_tile_time(float time){
-	m_tile_hist_sem.down();
-	m_tile_hist.push_back(time);
-	m_tile_hist_sem.up();
-}
-
-
 uint Game::thread_num() const { return m_thread_num; } 
 
 field Game::get_crr_fld() { return crr_fld; }
@@ -154,6 +147,12 @@ field Game::get_nxt_fld() { return nxt_fld; }
 uint Game::get_crr_gen() { return m_gen.get_val(); }
 
 uint Game::get_gen_num() { return m_gen_num; }
+
+void Game::push_tile_time(float time){
+    m_tile_hist_sem.down();
+    m_tile_hist.push_back(time);
+    m_tile_hist_sem.up();
+}
 
 void Game::run() {
 
@@ -206,9 +205,11 @@ void Game::_init_game() {
 
 void Game::_step(uint curr_gen) {
 	// Push phase 1 jobs to queue
+	cerr << "Gen " << curr_gen << endl;
 	for(uint i = 0; i < m_thread_num; i++){
         t_queue.push({i, next_gen});
 	}
+	cerr<<"Done pushing jobs" << endl;
 	// Wait for the workers to finish calculating
 	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){}
 }

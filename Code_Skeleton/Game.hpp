@@ -98,16 +98,19 @@ public:
 
 protected:
     virtual void thread_workload() override{
+        task_struct t;
+        bool ret;
 		while(game->get_crr_gen() < game->get_gen_num()) {
-			if(game->t_queue.size() != 0) {
-                auto tile_start = std::chrono::system_clock::now();
-                task_struct t = game->t_queue.try_pop();
-                (t.task)(game, t.tile_idx, sem);
-                auto tile_end = std::chrono::system_clock::now();
-                auto time = (float) std::chrono::duration_cast<std::chrono::microseconds>(
-                        tile_end - tile_start).count();
-                game->push_tile_time(time);
-            }
+            auto tile_start = std::chrono::system_clock::now();
+            ret = game->t_queue.try_pop(&t);
+            if(!ret) continue;
+            cerr << "Thread " << thread_id << " got a job" << endl;
+            (t.task)(game, t.tile_idx, sem);
+            cerr <<  thread_id << "Is done" << endl;
+            auto tile_end = std::chrono::system_clock::now();
+            auto time = (float) std::chrono::duration_cast<std::chrono::microseconds>(
+                    tile_end - tile_start).count();
+            game->push_tile_time(time);
 		}
 		pthread_exit(NULL);
     }

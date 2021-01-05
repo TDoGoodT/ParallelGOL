@@ -18,8 +18,7 @@ public:
 	void down(); // Block untill counter >0, and mark - One thread has entered the critical section.
 	int get_val();
 private:
-	// TODO 
-	int val; //counting resources if val>0 and waiting tasks if val<0
+	int val; //counting resources
 	cond_t cond;
 	mutex_t lock;	
 };
