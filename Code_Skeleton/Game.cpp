@@ -206,9 +206,11 @@ void Game::_init_game() {
 
 void Game::_step(uint curr_gen) {
 	// Push phase 1 jobs to queue
+	vector<task_struct> tasks;
 	for(uint i = 0; i < m_thread_num; i++){
-        t_queue.push({i, next_gen});
+        tasks.push_back({i, next_gen});
 	}
+	t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating
 	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){}
 }
