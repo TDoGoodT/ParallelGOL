@@ -98,10 +98,10 @@ public:
 
 protected:
     virtual void thread_workload() override{
-        task_struct t;
 	    while(game->get_crr_gen() < game->get_gen_num()) {
-            if(game->t_queue.try_pop(&t)) {
+            if(game->t_queue.size() > 0) {
                 auto tile_start = std::chrono::system_clock::now();
+                task_struct t = game->t_queue.pop();
                 (t.task)(game, t.tile_idx, sem);
                 auto tile_end = std::chrono::system_clock::now();
                 auto time = (float) std::chrono::duration_cast<std::chrono::microseconds>(
