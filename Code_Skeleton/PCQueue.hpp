@@ -6,7 +6,7 @@
 
 class RWLock{
 public:
-    RWLock(): w_waiting(false), r_inside(false), w_inside(false){
+    RWLock(): w_waiting(false), r_inside(false), w_inside(false), write(1), read(0){
         pthread_cond_init(&r_allowed, NULL);
         pthread_cond_init(&w_allowed, NULL);
         pthread_mutex_init(&glb_lock, NULL);
@@ -38,13 +38,15 @@ public:
     void writer_unlock(){
         pthread_mutex_lock(&glb_lock);
         w_inside = false;
-        pthread_cond_signal(&r_allowed);
+        pthread_cond_broadcast(&r_allowed);
         pthread_mutex_unlock(&glb_lock);
     }
 private:
     bool w_waiting, r_inside, w_inside;
     cond_t r_allowed, w_allowed;
     mutex_t glb_lock;
+    Semaphore read;
+    Semaphore write;
 
 };
 
@@ -60,8 +62,9 @@ public:
     // thread to enter and remove an item from the front of the queue and return it.
     // Assumes multiple consumers.
     T pop(){
-        queue_size.down();
+        //queue_size.down();
         lock.reader_lock();
+        queue_size.down();
         T res = tasks.front();
         tasks.pop();
         lock.reader_unlock();
@@ -92,7 +95,11 @@ public:
     }
 
     int size(){
+        //lock.reader_lock();
+        //int res = tasks.size();
         return queue_size.get_val();
+        //lock.reader_unlock();
+        //return queue_size.get_val();
     }
 
 

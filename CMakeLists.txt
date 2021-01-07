@@ -16,4 +16,4 @@ add_executable(HW3_OS
         Code_Skeleton/Semaphore.hpp
         Code_Skeleton/Thread.hpp
         Code_Skeleton/utils.cpp
-        Code_Skeleton/utils.hpp)
+        Code_Skeleton/utils.hpp Code_Skeleton/Barrier.hpp)

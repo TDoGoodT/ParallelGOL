@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include "Thread.hpp"
 #include "PCQueue.hpp"
+#include "Barrier.hpp"
 
 /*--------------------------------------------------------------------------------
 								  Species colors
@@ -22,7 +23,7 @@
 class Game;
 class GOLThread;
 typedef int_mat * 	field;
-typedef void 		(*task_func)(Game*, uint, Semaphore*,Semaphore*);
+typedef void 		(*task_func)(Game*, uint, Barrier*);
 typedef struct {
 	uint 	tile_idx;
 	task_func 	task;
@@ -84,34 +85,39 @@ protected: // All members here are protected, instead of private for testing pur
     Semaphore			m_sem;
     Semaphore			m_gate;
 	Semaphore			m_tile_hist_sem;
+public:
+    Barrier             m_barrier1;
+    Barrier             m_barrier2;
 };
 
 
 class GOLThread : public Thread{
 public:
     GOLThread(): Thread(0){};
-	GOLThread(uint thread_id, Game * g, Semaphore * sem, Semaphore * gate):
+	GOLThread(uint thread_id, Game * g):
         Thread(thread_id),
-		game(g),
-		sem(sem),
-		gate(gate){}
+		game(g), done_p1(&g->m_barrier1),
+        done_p2(&g->m_barrier2){}
 	
 
 protected:
     virtual void thread_workload() override{
 	    while(game->get_crr_gen() < game->get_gen_num()) {
             if(game->t_queue.size() == 0) continue;
-            auto tile_start = std::chrono::system_clock::now();
             task_struct t = game->t_queue.pop();
-            (t.task)(game, t.tile_idx, sem, gate);
+            cout << "Start tile" << endl;
+            auto tile_start = std::chrono::system_clock::now();
+            (t.task)(game, t.tile_idx, done_p1);
             auto tile_end = std::chrono::system_clock::now();
             auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
+            cout << "Done tile" << endl;
             game->push_tile_time(time);
+            done_p2->block();
 		}
 		pthread_exit(NULL);
     }
 	Game* game;
-	Semaphore * sem;
-    Semaphore * gate;
+    Barrier * done_p1;
+    Barrier * done_p2;
 };
 #endif
