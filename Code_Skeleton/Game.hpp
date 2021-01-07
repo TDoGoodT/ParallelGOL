@@ -103,7 +103,7 @@ public:
 protected:
     virtual void thread_workload() override{
 	    while(game->get_crr_gen() < game->get_gen_num()) {
-            if(game->t_queue.size() == 0) continue;
+            //if(game->t_queue.size() == 0) continue;
             task_struct t = game->t_queue.pop();
             cout << "Start tile" << endl;
             auto tile_start = std::chrono::system_clock::now();

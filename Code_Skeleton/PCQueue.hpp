@@ -62,9 +62,9 @@ public:
     // thread to enter and remove an item from the front of the queue and return it.
     // Assumes multiple consumers.
     T pop(){
-        //queue_size.down();
-        lock.reader_lock();
         queue_size.down();
+        lock.reader_lock();
+        //queue_size.down();
         T res = tasks.front();
         tasks.pop();
         lock.reader_unlock();
