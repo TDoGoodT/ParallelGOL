@@ -1,5 +1,5 @@
 from os import system
-in_files = {'small'}
+in_files = {'small','mid','big'}
 exec_file = './GameOfLife'
 make = 'make clean && make'
 gens = 100
