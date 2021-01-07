@@ -4,7 +4,8 @@ Semaphore::Semaphore(): val(0) {
 	pthread_mutex_init(&lock, NULL);
     pthread_cond_init(&cond, NULL);
 }
-Semaphore::Semaphore(unsigned val): val(val) {
+Semaphore::Semaphore(unsigned val):
+        val(val) {
 	pthread_mutex_init(&lock, NULL);
     pthread_cond_init(&cond, NULL);
 }
@@ -24,7 +25,7 @@ void Semaphore::up(){ //Signal
     pthread_mutex_lock(&lock);
     ++val;
     pthread_mutex_unlock(&lock);
-    pthread_cond_broadcast(&cond);
+    pthread_cond_signal(&cond);
 } // Mark: 1 Thread has left the critical section
 
 void Semaphore::up(int delta){ //Signal

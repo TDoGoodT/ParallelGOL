@@ -22,10 +22,10 @@ public:
     void block(){
         pthread_mutex_lock(&mutex);
         uint res = ++count;
-        pthread_mutex_unlock(&mutex);
         if(res == num_threads) {
             barrier.up();
         }
+        pthread_mutex_unlock(&mutex);
         barrier.down();
         barrier.up();
     }
