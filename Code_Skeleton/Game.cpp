@@ -159,7 +159,6 @@ void Game::run() {
 
 	_init_game(); // Starts the threads and all other variables you need
 	print_board("Initial Board");
-	cout << "Start" << endl;
 	for (uint i = 0; i < m_gen_num; ++i) {
 		auto gen_start = std::chrono::system_clock::now();
 		_step(i); // Iterates a single generation 
@@ -216,7 +215,7 @@ void Game::_step(uint curr_gen) {
 	//t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating
 	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){
-	    //cout << "waiting..." << endl;
+	    sched_yield();//cout << "waiting..." << endl;
 	}
     //cout << "Done with " << curr_gen << endl;
 }
