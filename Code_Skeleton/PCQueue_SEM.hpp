@@ -77,13 +77,14 @@ public:
         read_count++;
         if (read_count==1)
             write_sem.down();
-        read_sem.up();
 
         T res = tasks.front();
         q_size--;
         read_count--;
         if (read_count==0)
             write_sem.up();
+        read_sem.up();
+
         return res;
     }
 
