@@ -1,8 +1,9 @@
 from os import system
-in_files = {'small', 'mid', 'big'}
+in_files = {'big'}
 exec_file = './GameOfLife'
 make = 'make clean && make'
 gens = 100
+system(make)
 system('rm -rf results.csv')
 for fname in in_files:
 	print ("Testing " + fname)

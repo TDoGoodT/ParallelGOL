@@ -35,9 +35,5 @@ void Semaphore::up(int delta){ //Signal
 } // Mark: 1 Thread has left the critical section
 
 int Semaphore::get_val(){
-    int res;
-    pthread_mutex_lock(&lock);
-    res = val;
-    pthread_mutex_unlock(&lock);
-    return res;
+    return val;
 }

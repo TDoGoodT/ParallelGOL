@@ -120,7 +120,7 @@ static void next_gen(Game * game, uint tile_id, Semaphore * sem){
 	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {}
 	task_phase2(game,tile_id, start, end);
 	sem->up();
-	while((uint) sem->get_val() > 2 * (gen+1) * t_num) {}
+	//while((uint) sem->get_val() > 2 * (gen+1) * t_num) {}
 }
 
 /*--------------------------------------------------------------------------------
@@ -159,6 +159,7 @@ void Game::run() {
 
 	_init_game(); // Starts the threads and all other variables you need
 	print_board("Initial Board");
+	cout << "Start" << endl;
 	for (uint i = 0; i < m_gen_num; ++i) {
 		auto gen_start = std::chrono::system_clock::now();
 		_step(i); // Iterates a single generation 
@@ -181,7 +182,7 @@ void Game::_init_game() {
 	height = str_field.size();
 	width = str_field[0].size();
 	//update m_thread_num
-	m_thread_num = (str_field.size() < parms.n_thread) ? str_field.size() : parms.n_thread; 
+	m_thread_num = (height < parms.n_thread) ? height : parms.n_thread;
 	// Create threads
 	m_threadpool = vector<GOLThread*>(m_thread_num, nullptr);
 	for(uint i = 0; i < m_thread_num; i++){
@@ -211,9 +212,13 @@ void Game::_step(uint curr_gen) {
         //tasks.push_back({i, next_gen});
         t_queue.push({i, next_gen});
 	}
+	//cout << "Pushed all jobs " << curr_gen << endl;
 	//t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating
-	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){}
+	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){
+	    //cout << "waiting..." << endl;
+	}
+    //cout << "Done with " << curr_gen << endl;
 }
 
 void Game::_destroy_game(){
