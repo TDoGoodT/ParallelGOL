@@ -208,7 +208,6 @@ void Game::_init_game() {
 }
 
 void Game::_step(uint curr_gen) {
-    cout << "Start gen" << endl;
 	// Push phase 1 jobs to queue
 	vector<task_struct> tasks;
 	for(uint i = 0; i < m_thread_num; i++){
@@ -216,10 +215,8 @@ void Game::_step(uint curr_gen) {
         //t_queue.push({i, next_gen});
 	}
     t_queue.multi_push(tasks);
-	cout << "Pushed" << endl;
 	// Wait for the workers to finish calculating
     m_barrier2.block();
-    cout << "Done gen" << endl;
 }
 
 void Game::_destroy_game(){

@@ -102,17 +102,17 @@ public:
 
 protected:
     virtual void thread_workload() override{
-	    while(game->get_crr_gen() < game->get_gen_num()) {
+	    int i = 0;
+	    while(i < game->get_gen_num()) {
             //if(game->t_queue.size() == 0) continue;
             task_struct t = game->t_queue.pop();
-            cout << "Start tile" << endl;
             auto tile_start = std::chrono::system_clock::now();
             (t.task)(game, t.tile_idx, done_p1);
             auto tile_end = std::chrono::system_clock::now();
             auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
-            cout << "Done tile" << endl;
             game->push_tile_time(time);
             done_p2->block();
+            i++;
 		}
 		pthread_exit(NULL);
     }
