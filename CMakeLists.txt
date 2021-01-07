@@ -11,6 +11,7 @@ add_executable(HW3_OS
         Code_Skeleton/Headers.hpp
         Code_Skeleton/main.cpp
         Code_Skeleton/PCQueue.hpp
+        Code_Skeleton/PCQueue_SEM.hpp
         Code_Skeleton/Semaphore.cpp
         Code_Skeleton/Semaphore.hpp
         Code_Skeleton/Thread.hpp

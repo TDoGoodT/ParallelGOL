@@ -117,7 +117,9 @@ static void next_gen(Game * game, uint tile_id, Semaphore * sem){
 	set_start_end_bound(&start, &end, tile_id, game);
 	task_phase1(game,tile_id, start, end);
 	sem->up();
-	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {}
+	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {
+	    sched_yield();
+	}
 	task_phase2(game,tile_id, start, end);
 	sem->up();
 	//while((uint) sem->get_val() > 2 * (gen+1) * t_num) {}
