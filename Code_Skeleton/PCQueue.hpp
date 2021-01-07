@@ -62,7 +62,6 @@ public:
     T pop(){
         queue_size.down();
         lock.reader_lock();
-        //queue_size.down();
         T res = tasks.front();
         tasks.pop();
         lock.reader_unlock();

@@ -112,12 +112,12 @@ static void task_phase2(Game * game, uint tile_id, uint start, uint end){
 	} 
 }
 
-static void next_gen(Game * game, uint tile_id, Barrier * done){
+static void next_gen(Game * game, uint tile_id){
 	uint start, end;
 	set_start_end_bound(&start, &end, tile_id, game);
 	task_phase1(game,tile_id, start, end);
-    done->block();
     //Here will be block
+    game->m_barrier1.block();
     task_phase2(game,tile_id, start, end);
 }
 
@@ -138,7 +138,7 @@ const vector<double> Game::gen_hist() const { return m_gen_hist; }
 const vector<double> Game::tile_hist() const { return m_tile_hist; }
 
 void Game::push_tile_time(float time){
-	m_tile_hist_sem.down();
+	m_tile_hist_sem .down();
 	m_tile_hist.push_back(time);
 	m_tile_hist_sem.up();
 }
@@ -166,7 +166,8 @@ void Game::run() {
 		print_board(NULL);
 		m_gen++;
         m_barrier1 = Barrier(m_thread_num);
-        m_barrier2 = Barrier(m_thread_num+1);
+        //m_barrier2 = Barrier(m_thread_num+1);
+        m_sem = Semaphore(-m_thread_num);
 	} // generation loop
 	print_board("Final Board");
 	_destroy_game();
@@ -186,6 +187,7 @@ void Game::_init_game() {
 	// Create threads
     m_barrier1 = Barrier(m_thread_num);
     m_barrier2 = Barrier(m_thread_num+1);
+    m_sem = Semaphore(-m_thread_num);
 	m_threadpool = vector<GOLThread*>(m_thread_num, nullptr);
 	for(uint i = 0; i < m_thread_num; i++){
 		m_threadpool[i] = new GOLThread(i, this);
@@ -211,12 +213,14 @@ void Game::_step(uint curr_gen) {
 	// Push phase 1 jobs to queue
 	vector<task_struct> tasks;
 	for(uint i = 0; i < m_thread_num; i++){
-        tasks.push_back({i, next_gen});
-        //t_queue.push({i, next_gen});
+        //tasks.push_back({i, next_gen});
+        t_queue.push({i, next_gen});
 	}
-    t_queue.multi_push(tasks);
+    //t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating
-    m_barrier2.block();
+    //m_barrier2.block();
+    m_sem.up();
+	m_sem.down();
 }
 
 void Game::_destroy_game(){

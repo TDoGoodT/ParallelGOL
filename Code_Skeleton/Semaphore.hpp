@@ -10,7 +10,8 @@ typedef pthread_cond_t cond_t;
 class Semaphore {
 public:
 	Semaphore(); // Constructs a new semaphore with a counter of 0
-	Semaphore(unsigned val); // Constructs a new semaphore with a counter of val
+    Semaphore(unsigned val); // Constructs a new semaphore with a counter of val
+    Semaphore(int val); // Constructs a new semaphore with a counter of val
 	~Semaphore();
 
 

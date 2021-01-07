@@ -23,7 +23,7 @@
 class Game;
 class GOLThread;
 typedef int_mat * 	field;
-typedef void 		(*task_func)(Game*, uint, Barrier*);
+typedef void 		(*task_func)(Game*, uint);
 typedef struct {
 	uint 	tile_idx;
 	task_func 	task;
@@ -86,6 +86,7 @@ protected: // All members here are protected, instead of private for testing pur
 public:
     Barrier             m_barrier1;
     Barrier             m_barrier2;
+    Semaphore           m_sem;
 };
 
 
@@ -94,8 +95,7 @@ public:
     GOLThread(): Thread(0){};
 	GOLThread(uint thread_id, Game * g):
         Thread(thread_id),
-		game(g), done_p1(&g->m_barrier1),
-        done_p2(&g->m_barrier2){}
+		game(g){}
 	
 
 protected:
@@ -104,17 +104,16 @@ protected:
 	    while(1) {
             task_struct t = game->t_queue.pop();
             auto tile_start = std::chrono::system_clock::now();
-            (t.task)(game, t.tile_idx, done_p1);
+            (t.task)(game, t.tile_idx);
             auto tile_end = std::chrono::system_clock::now();
             auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
             game->push_tile_time(time);
-            done_p2->block();
+            //game->m_barrier2.block();
+            game->m_sem.up();
             if(++i == game->get_gen_num()) break;
 		}
 		pthread_exit(NULL);
     }
 	Game* game;
-    Barrier * done_p1;
-    Barrier * done_p2;
 };
 #endif
