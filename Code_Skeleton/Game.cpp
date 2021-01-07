@@ -113,7 +113,7 @@ static void task_phase2(Game * game, uint tile_id, uint start, uint end){
 }
 
 static void next_gen(Game * game, uint tile_id, Barrier * done){
-	uint start, end, gen = game->get_crr_gen(), t_num = game->thread_num();
+	uint start, end;
 	set_start_end_bound(&start, &end, tile_id, game);
 	task_phase1(game,tile_id, start, end);
     done->block();

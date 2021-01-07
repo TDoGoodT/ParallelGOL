@@ -6,7 +6,7 @@
 
 class RWLock{
 public:
-    RWLock(): w_waiting(false), r_inside(false), w_inside(false), write(1), read(0){
+    RWLock(): w_waiting(false), r_inside(false), w_inside(false){
         pthread_cond_init(&r_allowed, NULL);
         pthread_cond_init(&w_allowed, NULL);
         pthread_mutex_init(&glb_lock, NULL);
@@ -45,8 +45,6 @@ private:
     bool w_waiting, r_inside, w_inside;
     cond_t r_allowed, w_allowed;
     mutex_t glb_lock;
-    Semaphore read;
-    Semaphore write;
 
 };
 

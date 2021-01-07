@@ -21,7 +21,7 @@ public:
 
     void block(){
         pthread_mutex_lock(&mutex);
-        int res = ++count;
+        uint res = ++count;
         pthread_mutex_unlock(&mutex);
         if(res == num_threads) {
             barrier.up();

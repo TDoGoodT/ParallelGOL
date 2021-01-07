@@ -82,8 +82,6 @@ protected: // All members here are protected, instead of private for testing pur
 	field 				crr_fld;
 	field 				nxt_fld;
 	int     			m_gen;
-    Semaphore			m_sem;
-    Semaphore			m_gate;
 	Semaphore			m_tile_hist_sem;
 public:
     Barrier             m_barrier1;
@@ -104,7 +102,6 @@ protected:
     virtual void thread_workload() override{
 	    int i = 0;
 	    while(1) {
-            //if(game->t_queue.size() == 0) continue;
             task_struct t = game->t_queue.pop();
             auto tile_start = std::chrono::system_clock::now();
             (t.task)(game, t.tile_idx, done_p1);
