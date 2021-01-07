@@ -2,7 +2,7 @@
 #define __GAMERUN_H
 #include "utils.hpp"
 #include "Thread.hpp"
-#include "PCQueue_SEM.hpp"
+#include "PCQueue.hpp"
 
 /*--------------------------------------------------------------------------------
 								  Species colors
