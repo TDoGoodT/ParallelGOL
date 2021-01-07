@@ -22,7 +22,7 @@
 class Game;
 class GOLThread;
 typedef int_mat * 	field;
-typedef void 					(*task_func)(Game*, uint, Semaphore*);
+typedef void 		(*task_func)(Game*, uint, Semaphore*,Semaphore*);
 typedef struct {
 	uint 	tile_idx;
 	task_func 	task;
@@ -80,8 +80,9 @@ protected: // All members here are protected, instead of private for testing pur
 	// TODO: Add in your variables and synchronization primitives  
 	field 				crr_fld;
 	field 				nxt_fld;
-	Semaphore			m_gen;
-	Semaphore			m_sem;
+	int     			m_gen;
+    Semaphore			m_sem;
+    Semaphore			m_gate;
 	Semaphore			m_tile_hist_sem;
 };
 
@@ -89,10 +90,11 @@ protected: // All members here are protected, instead of private for testing pur
 class GOLThread : public Thread{
 public:
     GOLThread(): Thread(0){};
-	GOLThread(uint thread_id, Game * g, Semaphore * sem):
+	GOLThread(uint thread_id, Game * g, Semaphore * sem, Semaphore * gate):
         Thread(thread_id),
 		game(g),
-		sem(sem) {}
+		sem(sem),
+		gate(gate){}
 	
 
 protected:
@@ -101,7 +103,7 @@ protected:
             if(game->t_queue.size() == 0) continue;
             auto tile_start = std::chrono::system_clock::now();
             task_struct t = game->t_queue.pop();
-            (t.task)(game, t.tile_idx, sem);
+            (t.task)(game, t.tile_idx, sem, gate);
             auto tile_end = std::chrono::system_clock::now();
             auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
             game->push_tile_time(time);
@@ -110,5 +112,6 @@ protected:
     }
 	Game* game;
 	Semaphore * sem;
+    Semaphore * gate;
 };
 #endif

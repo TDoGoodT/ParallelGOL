@@ -112,16 +112,17 @@ static void task_phase2(Game * game, uint tile_id, uint start, uint end){
 	} 
 }
 
-static void next_gen(Game * game, uint tile_id, Semaphore * sem){
+static void next_gen(Game * game, uint tile_id, Semaphore * done, Semaphore * gate){
 	uint start, end, gen = game->get_crr_gen(), t_num = game->thread_num();
 	set_start_end_bound(&start, &end, tile_id, game);
 	task_phase1(game,tile_id, start, end);
-	sem->up();
-	while((uint) sem->get_val() < (2 * (gen+1) * t_num) - t_num) {
-	    sched_yield();
-	}
+	done->up();
+	//while((uint) done->get_val() < (2 * (gen+1) * t_num) - t_num) {
+	//    sched_yield();
+	//}
+	gate->down();
 	task_phase2(game,tile_id, start, end);
-	sem->up();
+	done->up();
 	//while((uint) sem->get_val() > 2 * (gen+1) * t_num) {}
 }
 
@@ -134,6 +135,8 @@ Game::Game(game_params parms):
 		m_gen_num(parms.n_gen),
 		interactive_on(parms.interactive_on),
 		print_on(parms.print_on),
+		m_gate(),
+		m_gen(0),
 		m_tile_hist_sem(1){}
 
 const vector<double> Game::gen_hist() const { return m_gen_hist; }
@@ -153,7 +156,7 @@ field Game::get_crr_fld() { return crr_fld; }
 
 field Game::get_nxt_fld() { return nxt_fld; }
 
-uint Game::get_crr_gen() { return m_gen.get_val(); }
+uint Game::get_crr_gen() { return m_gen; }
 
 uint Game::get_gen_num() { return m_gen_num; }
 
@@ -167,7 +170,7 @@ void Game::run() {
 		auto gen_end = std::chrono::system_clock::now();
 		m_gen_hist.push_back((float)std::chrono::duration_cast<std::chrono::microseconds>(gen_end - gen_start).count());
 		print_board(NULL);
-		m_gen.up();
+		m_gen++;
 	} // generation loop
 	print_board("Final Board");
 	_destroy_game();
@@ -187,7 +190,7 @@ void Game::_init_game() {
 	// Create threads
 	m_threadpool = vector<GOLThread*>(m_thread_num, nullptr);
 	for(uint i = 0; i < m_thread_num; i++){
-		m_threadpool[i] = new GOLThread(i, this, &m_sem);
+		m_threadpool[i] = new GOLThread(i, this, &m_sem, &m_gate);
 	}
 	// Create game fields
 	crr_fld = new vector<vector<uint>>(height, vector<uint>(width));
@@ -216,10 +219,14 @@ void Game::_step(uint curr_gen) {
 	//cout << "Pushed all jobs " << curr_gen << endl;
 	//t_queue.multi_push(tasks);
 	// Wait for the workers to finish calculating
-	while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){
-	    sched_yield();//cout << "waiting..." << endl;
+	while((uint) m_sem.get_val() < ((curr_gen + 1) * m_thread_num) ){
+	    sched_yield();//
 	}
-    //cout << "Done with " << curr_gen << endl;
+	m_gate.up(m_thread_num);
+    while((uint) m_sem.get_val() < 2 * ((curr_gen + 1) * m_thread_num) ){
+        sched_yield();//
+    }
+    cout << "Done with " << curr_gen << endl;
 }
 
 void Game::_destroy_game(){
