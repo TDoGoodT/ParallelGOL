@@ -100,7 +100,7 @@ public:
 
 protected:
     virtual void thread_workload() override{
-	    int i = 0;
+	    uint i = 0;
 	    while(1) {
             task_struct t = game->t_queue.pop();
             auto tile_start = std::chrono::system_clock::now();
