@@ -2,7 +2,7 @@
 #define __GAMERUN_H
 #include "utils.hpp"
 #include "Thread.hpp"
-#include "PCQueue.hpp"
+#include "PCQueue_SEM.hpp"
 //#include "GOLThread.hpp"
 /*--------------------------------------------------------------------------------
 								  Species colors
@@ -99,15 +99,13 @@ public:
 protected:
     virtual void thread_workload() override{
 	    while(game->get_crr_gen() < game->get_gen_num()) {
-            if(game->t_queue.size() > 0) {
-                auto tile_start = std::chrono::system_clock::now();
-                task_struct t = game->t_queue.pop();
-                (t.task)(game, t.tile_idx, sem);
-                auto tile_end = std::chrono::system_clock::now();
-                auto time = (float) std::chrono::duration_cast<std::chrono::microseconds>(
-                        tile_end - tile_start).count();
-                game->push_tile_time(time);
-            }
+            if(game->t_queue.size() == 0) continue;
+            auto tile_start = std::chrono::system_clock::now();
+            task_struct t = game->t_queue.pop();
+            (t.task)(game, t.tile_idx, sem);
+            auto tile_end = std::chrono::system_clock::now();
+            auto time = (float)std::chrono::duration_cast<std::chrono::microseconds>(tile_end - tile_start).count();
+            game->push_tile_time(time);
 		}
 		pthread_exit(NULL);
     }

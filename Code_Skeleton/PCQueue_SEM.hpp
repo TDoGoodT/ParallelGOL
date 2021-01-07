@@ -6,7 +6,8 @@
 
 class RWLock{
 public:
-    RWLock(): w_waiting(false), r_inside(false), w_inside(false){
+    RWLock():
+            w_waiting(false), r_inside(false), w_inside(false){
         pthread_cond_init(&r_allowed, NULL);
         pthread_cond_init(&w_allowed, NULL);
         pthread_mutex_init(&glb_lock, NULL);
@@ -51,31 +52,61 @@ private:
 template <typename T>
 class PCQueue
 {
+private:
+    // Add your class memebers here
+    queue<T> tasks;
+    int read_count, write_count, q_size;
+    Semaphore x, y;
+    Semaphore read_sem, write_sem;
 
 public:
-    PCQueue(){}
+    PCQueue():
+        read_count(0),
+        write_count(0),
+        read_sem(1),
+        write_sem(1),
+        x(1), y(1){}
     ~PCQueue(){}
 
     // Blocks while queue is empty. When queue holds items, allows for a single
     // thread to enter and remove an item from the front of the queue and return it.
     // Assumes multiple consumers.
     T pop(){
-        queue_size.down();
-        lock.reader_lock();
+
+        read_sem.down();
+        read_count++;
+        if (read_count==1)
+            write_sem.down();
+        read_sem.up();
+
         T res = tasks.front();
-        tasks.pop();
-        lock.reader_unlock();
+        q_size--;
+        read_count--;
+        if (read_count==0)
+            write_sem.up();
         return res;
+    }
+
+    bool try_pop(T* res){
+        if(q_size > 0) {
+            *res = pop();
+            return true;
+        }
+        return false;
     }
 
     // Allows for producer to enter with *minimal delay* and push items to back of the queue.
     // Hint for *minimal delay* - Allow the consumers to delay the producer as little as possible.
     // Assumes single producer
     void push(const T& item){
-        lock.writer_lock();
+        read_sem.down();
+        write_sem.down();
+
         tasks.push(item);
-        queue_size.up();
-        lock.writer_unlock();
+        q_size++;
+
+        write_sem.up();
+        read_sem.up();
     }
 
 
@@ -83,24 +114,20 @@ public:
     // Hint for *minimal delay* - Allow the consumers to delay the producer as little as possible.
     // Assumes single producer
     void multi_push(const vector<T>& items){
-        lock.writer_lock();
+        //lock.writer_lock();
         for(auto item : items){
             tasks.push(item);
-            queue_size.up();
         }
-        lock.writer_unlock();
+        q_size += items.size();
+        //lock.writer_unlock();
     }
 
     int size(){
-        return queue_size.get_val();
+        return q_size;
     }
 
 
-private:
-    // Add your class memebers here
-    queue<T> tasks;
-    RWLock lock;
-    Semaphore queue_size;
+
 };
 // Recommendation: Use the implementation of the std::queue for this exercise
 #endif
