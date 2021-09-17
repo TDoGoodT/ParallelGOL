@@ -1,4 +1,4 @@
-![Build](https://github.com/TDoGoodT/ParallelGOL/blob/master/.github/workflows/c-cpp.yml)
+![Build](https://github.com/TDoGoodT/ParallelGOL/blob/master/.github/workflows/c-cpp.yml/badge.svg)
 
 # ParallelGOL
 parallel version of Game of life
