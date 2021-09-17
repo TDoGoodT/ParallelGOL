@@ -15,7 +15,7 @@ OBJS  := $(patsubst %.cpp, %.o, $(SRC))
 ##----------------------------------------------------------------------
 all: $(TARGET)
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) $(LDLIBS)
 
 depend: .depend
 
